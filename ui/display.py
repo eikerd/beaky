@@ -158,43 +158,127 @@ class Display:
 
     def _add_bubble(self, text: str, is_user: bool):
         """Add a full message bubble to the conversation."""
-        anchor = "e" if is_user else "w"
-        bg = config.UI_USER_COLOR if is_user else config.UI_BEAKY_COLOR
-        label_text = f"You: {text}" if is_user else f"Beaky: {text}"
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
 
-        bubble = tk.Label(
-            self._scroll_frame,
-            text=label_text,
-            bg=bg,
-            fg=config.UI_TEXT_COLOR,
-            font=(config.UI_FONT_FAMILY, config.UI_FONT_SIZE),
-            wraplength=700,
-            justify=tk.LEFT,
-            padx=14,
-            pady=10,
-            anchor="w",
-        )
-        bubble.pack(anchor=anchor, padx=10, pady=4, fill=tk.X if not is_user else tk.NONE)
+        # Create container frame for the message
+        container = tk.Frame(self._scroll_frame, bg=config.UI_BG_COLOR)
+        container.pack(fill=tk.X, padx=10, pady=4)
+
+        if is_user:
+            # User messages on the RIGHT
+            # Timestamp
+            tk.Label(
+                container,
+                text=timestamp,
+                bg=config.UI_BG_COLOR,
+                fg="#666666",
+                font=(config.UI_FONT_FAMILY, 9),
+            ).pack(side=tk.RIGHT, padx=(5, 0))
+
+            # Message bubble
+            bubble = tk.Label(
+                container,
+                text=text,
+                bg=config.UI_USER_COLOR,
+                fg=config.UI_TEXT_COLOR,
+                font=(config.UI_FONT_FAMILY, config.UI_FONT_SIZE),
+                wraplength=500,
+                justify=tk.LEFT,
+                padx=12,
+                pady=8,
+                relief=tk.FLAT,
+            )
+            bubble.pack(side=tk.RIGHT, padx=(0, 5))
+
+            # Label
+            tk.Label(
+                container,
+                text="You",
+                bg=config.UI_BG_COLOR,
+                fg=config.UI_USER_COLOR,
+                font=(config.UI_FONT_FAMILY, 10, "bold"),
+            ).pack(side=tk.RIGHT, padx=(0, 8))
+        else:
+            # Beaky messages on the LEFT
+            # Label
+            tk.Label(
+                container,
+                text="Beaky",
+                bg=config.UI_BG_COLOR,
+                fg=config.UI_BEAKY_COLOR,
+                font=(config.UI_FONT_FAMILY, 10, "bold"),
+            ).pack(side=tk.LEFT, padx=(0, 8))
+
+            # Message bubble
+            bubble = tk.Label(
+                container,
+                text=text,
+                bg=config.UI_BEAKY_COLOR,
+                fg=config.UI_TEXT_COLOR,
+                font=(config.UI_FONT_FAMILY, config.UI_FONT_SIZE),
+                wraplength=500,
+                justify=tk.LEFT,
+                padx=12,
+                pady=8,
+                relief=tk.FLAT,
+            )
+            bubble.pack(side=tk.LEFT, padx=(0, 5))
+
+            # Timestamp
+            tk.Label(
+                container,
+                text=timestamp,
+                bg=config.UI_BG_COLOR,
+                fg="#666666",
+                font=(config.UI_FONT_FAMILY, 9),
+            ).pack(side=tk.LEFT, padx=(5, 0))
+
         self._auto_scroll()
 
     def _append_stream(self, token: str):
         """Append a token to the current streaming bubble."""
         if not hasattr(self, "_stream_bubble") or self._stream_bubble is None:
-            # Create a new bubble for streaming
-            self._stream_text = "Beaky: "
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+
+            # Create container for streaming message
+            self._stream_container = tk.Frame(self._scroll_frame, bg=config.UI_BG_COLOR)
+            self._stream_container.pack(fill=tk.X, padx=10, pady=4)
+
+            # Beaky label (left side)
+            tk.Label(
+                self._stream_container,
+                text="Beaky",
+                bg=config.UI_BG_COLOR,
+                fg=config.UI_BEAKY_COLOR,
+                font=(config.UI_FONT_FAMILY, 10, "bold"),
+            ).pack(side=tk.LEFT, padx=(0, 8))
+
+            # Message bubble
+            self._stream_text = ""
             self._stream_bubble = tk.Label(
-                self._scroll_frame,
+                self._stream_container,
                 text=self._stream_text,
                 bg=config.UI_BEAKY_COLOR,
                 fg=config.UI_TEXT_COLOR,
                 font=(config.UI_FONT_FAMILY, config.UI_FONT_SIZE),
-                wraplength=700,
+                wraplength=500,
                 justify=tk.LEFT,
-                padx=14,
-                pady=10,
-                anchor="w",
+                padx=12,
+                pady=8,
+                relief=tk.FLAT,
             )
-            self._stream_bubble.pack(anchor="w", padx=10, pady=4)
+            self._stream_bubble.pack(side=tk.LEFT, padx=(0, 5))
+
+            # Timestamp
+            tk.Label(
+                self._stream_container,
+                text=timestamp,
+                bg=config.UI_BG_COLOR,
+                fg="#666666",
+                font=(config.UI_FONT_FAMILY, 9),
+            ).pack(side=tk.LEFT, padx=(5, 0))
 
         self._stream_text += token
         self._stream_bubble.configure(text=self._stream_text)
