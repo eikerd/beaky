@@ -90,6 +90,16 @@ def worker_loop(display: Display, llm: LLM, vision: Vision, stt: STT, tts: TTS, 
 def main():
     log.info("Starting Beaky...")
 
+    # Verify audio setup first
+    from audio_check import verify_audio_setup
+    audio_ok = verify_audio_setup()
+
+    if not audio_ok:
+        response = input("\n⚠️  Audio issues detected. Continue anyway? (y/n): ")
+        if response.lower() != 'y':
+            log.info("Startup cancelled by user")
+            return
+
     # Initialize components
     display = Display()
     llm = LLM()
