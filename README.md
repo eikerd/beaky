@@ -61,6 +61,24 @@ pip install -r requirements.txt
 
 **Note**: `face_recognition` is optional. If installation fails, Beaky will still work but face recognition will be disabled.
 
+### 4. Verify your setup
+
+Run the verification script to check all dependencies:
+
+```bash
+python verify_setup.py
+```
+
+This will check:
+- Python version
+- All Python packages
+- Ollama connection and models
+- Piper TTS availability
+- Audio devices
+- Webcam access
+
+Fix any issues before proceeding to run Beaky.
+
 ## Usage
 
 ```bash
