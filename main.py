@@ -121,6 +121,10 @@ def main():
     # Handle Ctrl+C
     signal.signal(signal.SIGINT, lambda *_: shutdown())
 
+    # Startup greeting
+    log.info("Playing startup greeting...")
+    tts.speak("Hello! I'm Beaky. Speak to me and I'll respond!", blocking=True)
+
     # Start the worker thread
     worker = threading.Thread(target=worker_loop, args=(display, llm, vision, stt, tts, people), daemon=True)
     worker.start()
