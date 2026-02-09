@@ -12,7 +12,7 @@ import threading
 from brain.llm import LLM
 from brain.vision import Vision
 from memory.people import PeopleMemory
-from ui.display import Display, MSG_USER, MSG_BEAKY, MSG_BEAKY_STREAM, MSG_BEAKY_DONE, MSG_STATUS
+from ui.display import Display, MSG_USER, MSG_BEAKY, MSG_BEAKY_STREAM, MSG_BEAKY_DONE, MSG_STATUS, MSG_VOLUME
 from voice.stt import STT
 from voice.tts import TTS
 
@@ -36,7 +36,10 @@ def worker_loop(display: Display, llm: LLM, vision: Vision, stt: STT, tts: TTS, 
         try:
             # 1. Listen for speech
             display.post(MSG_STATUS, "Listening...")
-            text = stt.listen(status_callback=lambda msg: display.post(MSG_STATUS, msg))
+            text = stt.listen(
+                status_callback=lambda msg: display.post(MSG_STATUS, msg),
+                volume_callback=lambda level: display.post(MSG_VOLUME, str(level))
+            )
             if text is None or _shutdown.is_set():
                 continue
 

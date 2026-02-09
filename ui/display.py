@@ -15,6 +15,7 @@ MSG_BEAKY = "beaky"
 MSG_BEAKY_STREAM = "beaky_stream"  # streaming token append
 MSG_BEAKY_DONE = "beaky_done"     # end of streamed response
 MSG_STATUS = "status"
+MSG_VOLUME = "volume"  # audio input level (0.0 to 1.0)
 
 
 class Display:
@@ -77,6 +78,30 @@ class Display:
         self._canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # -- volume meter --
+        volume_frame = tk.Frame(self.root, bg="#0d0d1a", height=30)
+        volume_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        volume_frame.pack_propagate(False)
+
+        tk.Label(
+            volume_frame,
+            text="🎤",
+            bg="#0d0d1a",
+            fg="#888888",
+            font=(config.UI_FONT_FAMILY, 12),
+        ).pack(side=tk.LEFT, padx=(20, 5))
+
+        self._volume_canvas = tk.Canvas(
+            volume_frame,
+            bg="#1a1a2e",
+            height=16,
+            highlightthickness=0,
+        )
+        self._volume_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 20), pady=7)
+        self._volume_bar = self._volume_canvas.create_rectangle(
+            0, 0, 0, 16, fill="#4ade80", outline=""
+        )
+
         # -- status bar --
         self._status_var = tk.StringVar(value="Waiting for speech...")
         self._status_bar = tk.Label(
@@ -119,8 +144,12 @@ class Display:
                         self._status_bar.configure(bg="#1a1a4d", fg="#60a5fa")  # Blue when processing
                     elif "speaking" in text.lower():
                         self._status_bar.configure(bg="#4d1a4d", fg="#c084fc")  # Purple when Beaky speaks
+                        self._start_speaking_animation()
                     else:
                         self._status_bar.configure(bg="#0d0d1a", fg="#888888")  # Default gray
+                        self._stop_speaking_animation()
+                elif event_type == MSG_VOLUME:
+                    self._update_volume(float(text))
         except queue.Empty:
             pass
 
@@ -180,6 +209,52 @@ class Display:
         """Scroll to the bottom of the conversation."""
         self._canvas.update_idletasks()
         self._canvas.yview_moveto(1.0)
+
+    def _update_volume(self, level: float):
+        """Update the volume meter bar (level from 0.0 to 1.0)."""
+        if not hasattr(self, '_volume_canvas'):
+            return
+        width = self._volume_canvas.winfo_width()
+        bar_width = int(width * min(level, 1.0))
+
+        # Color based on level
+        if level > 0.5:
+            color = "#4ade80"  # Green - good level
+        elif level > 0.1:
+            color = "#facc15"  # Yellow - okay level
+        else:
+            color = "#64748b"  # Gray - quiet
+
+        self._volume_canvas.coords(self._volume_bar, 0, 0, bar_width, 16)
+        self._volume_canvas.itemconfig(self._volume_bar, fill=color)
+
+    def _start_speaking_animation(self):
+        """Start pulsing animation when Beaky speaks."""
+        self._speaking = True
+        self._pulse_count = 0
+        self._animate_speaking()
+
+    def _stop_speaking_animation(self):
+        """Stop speaking animation."""
+        self._speaking = False
+
+    def _animate_speaking(self):
+        """Pulse the volume bar when Beaky is speaking."""
+        if not self._speaking or not hasattr(self, '_volume_canvas'):
+            return
+
+        # Create a pulsing effect
+        import math
+        pulse = (math.sin(self._pulse_count * 0.3) + 1) / 2  # 0 to 1
+        width = self._volume_canvas.winfo_width()
+        bar_width = int(width * (0.3 + pulse * 0.4))  # Pulse between 30% and 70%
+
+        self._volume_canvas.coords(self._volume_bar, 0, 0, bar_width, 16)
+        self._volume_canvas.itemconfig(self._volume_bar, fill="#c084fc")  # Purple
+
+        self._pulse_count += 1
+        if self.root:
+            self.root.after(50, self._animate_speaking)
 
     def _close(self, on_close=None):
         if on_close:

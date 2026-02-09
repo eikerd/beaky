@@ -38,13 +38,14 @@ class STT:
         shorts = struct.unpack(f"<{count}h", data)
         return (sum(s * s for s in shorts) / count) ** 0.5 / 32768.0
 
-    def listen(self, status_callback=None) -> str | None:
+    def listen(self, status_callback=None, volume_callback=None) -> str | None:
         """
         Block until speech is detected, record until silence, transcribe, and return text.
         Returns None if nothing meaningful was captured.
 
         Args:
             status_callback: Optional function(status_msg: str) called on status changes
+            volume_callback: Optional function(level: float) called with audio level (0.0-1.0)
         """
         stream = self._pa.open(
             format=pyaudio.paInt16,
@@ -64,6 +65,10 @@ class STT:
             while True:
                 data = stream.read(self.chunk_size, exception_on_overflow=False)
                 rms = self._rms(data)
+
+                # Update volume meter
+                if volume_callback:
+                    volume_callback(min(rms / self.silence_threshold, 1.0))
 
                 if not speaking:
                     if rms > self.silence_threshold:
