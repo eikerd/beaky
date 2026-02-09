@@ -16,6 +16,7 @@ MSG_BEAKY_STREAM = "beaky_stream"  # streaming token append
 MSG_BEAKY_DONE = "beaky_done"     # end of streamed response
 MSG_STATUS = "status"
 MSG_VOLUME = "volume"  # audio input level (0.0 to 1.0)
+MSG_LOG = "log"  # system log message
 
 
 class Display:
