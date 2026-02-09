@@ -23,10 +23,10 @@ MIN_AUDIO_DURATION = 0.5      # minimum seconds of audio to process (filters out
 SAMPLE_RATE = 16000
 CHUNK_SIZE = 1024
 
-# --- Text-to-speech ---
-TTS_MODEL = "en_US-lessac-medium"  # Piper voice model
-TTS_SPEAKER_ID = None
-TTS_LENGTH_SCALE = 1.0  # speech speed (lower = faster)
+# --- Text-to-speech (Fish Speech) ---
+TTS_MODEL_DIR = "models/fish-speech"  # Fish Speech model directory
+TTS_DEVICE = "cuda"  # "cuda" for GPU, "cpu" for CPU
+TTS_REFERENCE_AUDIO = None  # Optional: path to WAV file for voice cloning
 
 # --- UI ---
 UI_TITLE = "Beaky"

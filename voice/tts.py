@@ -1,73 +1,126 @@
-"""Text-to-speech using Piper TTS with non-blocking playback."""
+"""Text-to-speech using Fish Speech with GPU acceleration."""
 
-import io
 import logging
-import subprocess
+import os
+import tempfile
 import threading
-import wave
 
+import numpy as np
 import pyaudio
-
-import config
+import soundfile as sf
+import torch
 
 log = logging.getLogger(__name__)
 
+try:
+    from fish_speech.models.text2semantic import TextToSemanticInference
+    from fish_speech.models.vqgan import VQGANInference
+    FISH_AVAILABLE = True
+except ImportError:
+    FISH_AVAILABLE = False
+    log.warning("Fish Speech not installed: pip install fish-speech")
+
 
 class TTS:
-    def __init__(self):
-        self.model = config.TTS_MODEL
-        self.speaker_id = config.TTS_SPEAKER_ID
-        self.length_scale = config.TTS_LENGTH_SCALE
+    def __init__(self, model_dir: str = "models/fish-speech", device: str = "cuda"):
+        if not FISH_AVAILABLE:
+            raise RuntimeError("Fish Speech not installed. Run: pip install fish-speech pynvml soundfile")
+
+        log.info("Loading Fish Speech TTS on %s...", device)
+
+        self.device = device
+        self.sample_rate = 44100
         self._pa = pyaudio.PyAudio()
-        self._playback_thread: threading.Thread | None = None
+        self._playback_thread = None
         self._stop_event = threading.Event()
 
-    def synthesize(self, text: str) -> bytes:
-        """Run Piper TTS and return raw WAV bytes."""
-        cmd = ["piper", "--model", self.model, "--output-raw"]
-        if self.speaker_id is not None:
-            cmd += ["--speaker", str(self.speaker_id)]
-        cmd += ["--length-scale", str(self.length_scale)]
-
-        log.info("Synthesizing: %s", text[:80])
-        result = subprocess.run(
-            cmd,
-            input=text.encode("utf-8"),
-            capture_output=True,
-        )
-        if result.returncode != 0:
-            log.error("Piper TTS failed: %s", result.stderr.decode())
-            raise RuntimeError(f"Piper TTS error: {result.stderr.decode()}")
-        return result.stdout
-
-    def _play_raw(self, raw_audio: bytes, sample_rate: int = 22050, channels: int = 1, sample_width: int = 2):
-        """Play raw PCM audio through PyAudio."""
-        stream = self._pa.open(
-            format=self._pa.get_format_from_width(sample_width),
-            channels=channels,
-            rate=sample_rate,
-            output=True,
-        )
-        chunk_size = 4096
+        # Load models
         try:
-            for i in range(0, len(raw_audio), chunk_size):
-                if self._stop_event.is_set():
-                    break
-                stream.write(raw_audio[i:i + chunk_size])
-        finally:
+            self.text2semantic = TextToSemanticInference(
+                model_path=os.path.join(model_dir, "text2semantic.pth"),
+                device=device,
+            )
+
+            self.vqgan = VQGANInference(
+                model_path=os.path.join(model_dir, "vqgan.pth"),
+                device=device,
+            )
+        except Exception as e:
+            log.error("Failed to load Fish Speech models: %s", e)
+            log.error("Make sure you've downloaded the models:")
+            log.error("  huggingface-cli download fishaudio/fish-speech-1.5 --local-dir models/fish-speech")
+            raise
+
+        # Warm up GPU
+        log.info("Warming up Fish Speech...")
+        self.synthesize("Hello")
+        log.info("Fish Speech TTS ready")
+
+    def synthesize(self, text: str) -> bytes:
+        """Synthesize text to audio. Returns WAV bytes."""
+        log.info("Synthesizing: %s", text[:80])
+
+        with torch.no_grad():
+            try:
+                # Text to semantic tokens
+                tokens = self.text2semantic.generate_tokens(text)
+
+                # Semantic tokens to audio
+                audio_tensor = self.vqgan.generate_audio(tokens)
+
+                # Convert to numpy array
+                samples = audio_tensor.detach().cpu().numpy()
+
+                # Save to temp WAV and read back as bytes
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = tmp.name
+
+                sf.write(tmp_path, samples, self.sample_rate)
+
+                with open(tmp_path, 'rb') as f:
+                    wav_bytes = f.read()
+
+                os.remove(tmp_path)
+                return wav_bytes
+
+            except Exception as e:
+                log.error("Fish Speech synthesis failed: %s", e)
+                raise RuntimeError(f"Fish Speech error: {e}")
+
+    def _play_wav(self, wav_bytes: bytes):
+        """Play WAV bytes through PyAudio."""
+        import wave
+        import io
+
+        wav_file = io.BytesIO(wav_bytes)
+        with wave.open(wav_file, 'rb') as wf:
+            stream = self._pa.open(
+                format=self._pa.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True,
+            )
+
+            chunk_size = 4096
+            data = wf.readframes(chunk_size)
+
+            while data and not self._stop_event.is_set():
+                stream.write(data)
+                data = wf.readframes(chunk_size)
+
             stream.stop_stream()
             stream.close()
 
     def speak(self, text: str, blocking: bool = False):
         """Synthesize and play text. Non-blocking by default."""
-        raw_audio = self.synthesize(text)
+        wav_bytes = self.synthesize(text)
 
         self._stop_event.clear()
         if blocking:
-            self._play_raw(raw_audio)
+            self._play_wav(wav_bytes)
         else:
             self._playback_thread = threading.Thread(
-                target=self._play_raw, args=(raw_audio,), daemon=True
+                target=self._play_wav, args=(wav_bytes,), daemon=True
             )
             self._playback_thread.start()
 

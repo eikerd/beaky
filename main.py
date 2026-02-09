@@ -117,7 +117,7 @@ def main():
     llm = LLM()
     vision = Vision()
     stt = STT()
-    tts = TTS()
+    tts = TTS(model_dir=config.TTS_MODEL_DIR, device=config.TTS_DEVICE)
     people = PeopleMemory()
 
     def shutdown():
