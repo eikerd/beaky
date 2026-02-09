@@ -77,10 +77,16 @@ def test_audio_output(duration=0.5, frequency=440):
         return False
 
 
-def test_audio_input(duration=2.0, threshold=0.01):
+def test_audio_input(duration=3.0, threshold=0.005):
     """Test if microphone is picking up sound."""
-    print("🎤 Testing audio input (speak into your microphone)...")
-    print("   Listening for 2 seconds...")
+    print("🎤 Testing audio input...")
+    print("   Get ready to speak into your microphone!")
+
+    import time
+    for i in range(3, 0, -1):
+        print(f"   Starting in {i}...", end='\r')
+        time.sleep(1)
+    print("   🔴 LISTENING NOW - Say something!     ")
 
     try:
         pa = pyaudio.PyAudio()
@@ -115,11 +121,12 @@ def test_audio_input(duration=2.0, threshold=0.01):
             print(f"   ✓ Microphone working! (max level: {max_level:.3f})\n")
             return True
         else:
-            print(f"   ⚠ No sound detected (max level: {max_level:.3f})")
+            print(f"   ⚠ No voice detected during test (max level: {max_level:.3f})")
             if max_level < 0.001:
-                print("   → Check if your microphone is muted or not selected\n")
+                print("   → Check if your microphone is muted or not selected")
             else:
-                print("   → Microphone seems to work but might be too quiet\n")
+                print("   → Mic detected some sound - you can check the volume meter when Beaky runs")
+            print("   → This test is just a quick check, Beaky might still work fine!\n")
             return False
 
     except Exception as e:
@@ -147,8 +154,9 @@ def verify_audio_setup():
         print("❌ Both microphone and speakers have issues")
         print("   Check your audio settings in Windows")
     elif not input_ok:
-        print("⚠️  Microphone issue detected")
-        print("   Beaky won't be able to hear you")
+        print("⚠️  Microphone test didn't detect voice")
+        print("   This might just be timing - watch the volume meter when Beaky runs")
+        print("   If the meter stays gray when you speak, increase mic volume in Windows")
     elif not output_ok:
         print("⚠️  Speaker issue detected")
         print("   You won't hear Beaky's responses")
