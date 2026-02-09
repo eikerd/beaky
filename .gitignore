@@ -10,3 +10,4 @@ memory/people.json
 .env
 *.wav
 *.mp3
+beaky.log

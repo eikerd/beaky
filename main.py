@@ -16,12 +16,21 @@ from ui.display import Display, MSG_USER, MSG_BEAKY, MSG_BEAKY_STREAM, MSG_BEAKY
 from voice.stt import STT
 from voice.tts import TTS
 
+# Configure logging to both console and file
+log_file = "beaky.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     datefmt="%H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),  # Console
+        logging.FileHandler(log_file, mode='a', encoding='utf-8')  # File
+    ]
 )
 log = logging.getLogger("beaky")
+log.info("=" * 60)
+log.info("Beaky session starting")
+log.info("=" * 60)
 
 # Global shutdown flag
 _shutdown = threading.Event()
