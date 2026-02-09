@@ -24,7 +24,27 @@ A local AI-powered interactive kiosk with voice I/O, webcam vision, and a conver
 
 **Hardware target**: RTX 5060 Ti (16GB VRAM) or similar
 
+## Platform Requirements
+
+**⚠️ Important: Run on native Windows or Linux, not WSL2**
+
+Beaky requires direct hardware access:
+- **Webcam** - for vision and face recognition
+- **Microphone** - for speech input
+- **Speakers** - for voice output
+- **GPU** - for fast model inference
+
+**If you're on WSL2**: WSL2 doesn't support these devices natively. See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for instructions on running Beaky on Windows while keeping your WSL2 development environment.
+
+**Development workflow** (if using WSL2):
+- Code location: `/mnt/d/beaky` (WSL2) = `D:\beaky` (Windows)
+- Edit code in WSL2 using your preferred tools
+- Run `python main.py` from Windows PowerShell/CMD for hardware access
+- Use Git from either environment (recommend picking one to avoid confusion)
+
 ## Installation
+
+> **Windows users**: See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows-specific instructions.
 
 ### 1. Install Ollama
 
