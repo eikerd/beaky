@@ -79,7 +79,7 @@ class Display:
 
         # -- status bar --
         self._status_var = tk.StringVar(value="Waiting for speech...")
-        status_bar = tk.Label(
+        self._status_bar = tk.Label(
             self.root,
             textvariable=self._status_var,
             bg="#0d0d1a",
@@ -89,7 +89,7 @@ class Display:
             padx=20,
             pady=6,
         )
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+        self._status_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
         # Kick off the queue poll
         self.root.after(50, self._poll_queue)
@@ -112,6 +112,15 @@ class Display:
                     self._finalize_stream()
                 elif event_type == MSG_STATUS:
                     self._status_var.set(text)
+                    # Change color based on status
+                    if "Voice detected" in text or "🎤" in text:
+                        self._status_bar.configure(bg="#1a4d1a", fg="#4ade80")  # Green when hearing
+                    elif "Processing" in text or "Thinking" in text:
+                        self._status_bar.configure(bg="#1a1a4d", fg="#60a5fa")  # Blue when processing
+                    elif "speaking" in text.lower():
+                        self._status_bar.configure(bg="#4d1a4d", fg="#c084fc")  # Purple when Beaky speaks
+                    else:
+                        self._status_bar.configure(bg="#0d0d1a", fg="#888888")  # Default gray
         except queue.Empty:
             pass
 

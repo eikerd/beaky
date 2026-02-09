@@ -38,10 +38,13 @@ class STT:
         shorts = struct.unpack(f"<{count}h", data)
         return (sum(s * s for s in shorts) / count) ** 0.5 / 32768.0
 
-    def listen(self) -> str | None:
+    def listen(self, status_callback=None) -> str | None:
         """
         Block until speech is detected, record until silence, transcribe, and return text.
         Returns None if nothing meaningful was captured.
+
+        Args:
+            status_callback: Optional function(status_msg: str) called on status changes
         """
         stream = self._pa.open(
             format=pyaudio.paInt16,
@@ -68,12 +71,16 @@ class STT:
                         silent_chunks = 0
                         frames.append(data)
                         log.info("Speech detected (RMS=%.4f)", rms)
+                        if status_callback:
+                            status_callback("🎤 Voice detected - speak now!")
                 else:
                     frames.append(data)
                     if rms < self.silence_threshold:
                         silent_chunks += 1
                         if silent_chunks >= silence_limit:
                             log.info("Silence detected, processing...")
+                            if status_callback:
+                                status_callback("Processing speech...")
                             break
                     else:
                         silent_chunks = 0

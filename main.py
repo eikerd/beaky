@@ -36,7 +36,7 @@ def worker_loop(display: Display, llm: LLM, vision: Vision, stt: STT, tts: TTS, 
         try:
             # 1. Listen for speech
             display.post(MSG_STATUS, "Listening...")
-            text = stt.listen()
+            text = stt.listen(status_callback=lambda msg: display.post(MSG_STATUS, msg))
             if text is None or _shutdown.is_set():
                 continue
 
