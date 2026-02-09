@@ -1,6 +1,7 @@
 ollama
 faster-whisper
 piper-tts
+pathvalidate
 opencv-python
 Pillow
 face-recognition
