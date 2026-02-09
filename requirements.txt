@@ -1,0 +1,8 @@
+ollama
+faster-whisper
+piper-tts
+opencv-python
+Pillow
+face-recognition
+pyaudio
+numpy
