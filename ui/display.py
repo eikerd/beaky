@@ -17,6 +17,8 @@ MSG_BEAKY_DONE = "beaky_done"     # end of streamed response
 MSG_STATUS = "status"
 MSG_VOLUME = "volume"  # audio input level (0.0 to 1.0)
 MSG_LOG = "log"  # system log message
+MSG_VIDEO = "video"  # video frame (BGR numpy array as bytes)
+MSG_VISION_TEXT = "vision_text"  # vision description overlay
 
 
 class Display:
@@ -61,9 +63,43 @@ class Display:
         )
         header.pack(fill=tk.X)
 
-        # -- scrollable conversation area --
-        container = tk.Frame(self.root, bg=config.UI_BG_COLOR)
-        container.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
+        # -- main content area (video + chat) --
+        main_container = tk.Frame(self.root, bg=config.UI_BG_COLOR)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
+
+        # -- video feed panel (right side) --
+        video_panel = tk.Frame(main_container, bg="#0a0a0a", width=320)
+        video_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
+        video_panel.pack_propagate(False)
+
+        tk.Label(
+            video_panel,
+            text="📹 CAMERA",
+            bg="#0a0a0a",
+            fg="#888888",
+            font=(config.UI_FONT_FAMILY, 10, "bold"),
+            pady=5,
+        ).pack()
+
+        self._video_label = tk.Label(video_panel, bg="#000000")
+        self._video_label.pack(pady=5)
+
+        self._vision_text_label = tk.Label(
+            video_panel,
+            text="",
+            bg="#0a0a0a",
+            fg="#60a5fa",
+            font=(config.UI_FONT_FAMILY, 9),
+            wraplength=300,
+            justify=tk.LEFT,
+            padx=10,
+            pady=5,
+        )
+        self._vision_text_label.pack()
+
+        # -- scrollable conversation area (left side) --
+        container = tk.Frame(main_container, bg=config.UI_BG_COLOR)
+        container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self._canvas = tk.Canvas(container, bg=config.UI_BG_COLOR, highlightthickness=0)
         scrollbar = tk.Scrollbar(container, orient=tk.VERTICAL, command=self._canvas.yview)
@@ -151,6 +187,10 @@ class Display:
                         self._stop_speaking_animation()
                 elif event_type == MSG_VOLUME:
                     self._update_volume(float(text))
+                elif event_type == MSG_VIDEO:
+                    self._update_video(text)
+                elif event_type == MSG_VISION_TEXT:
+                    self._update_vision_text(text)
         except queue.Empty:
             pass
 
@@ -340,6 +380,41 @@ class Display:
         self._pulse_count += 1
         if self.root:
             self.root.after(50, self._animate_speaking)
+
+    def _update_video(self, frame_bytes: bytes):
+        """Update the video feed with a new frame."""
+        import io
+        import pickle
+        import numpy as np
+        from PIL import Image, ImageTk
+
+        # Deserialize the frame
+        frame = pickle.loads(frame_bytes)
+
+        # Convert BGR to RGB
+        rgb = frame[:, :, ::-1]
+
+        # Resize to fit panel (maintain aspect ratio)
+        height, width = rgb.shape[:2]
+        max_width = 300
+        scale = max_width / width
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+
+        # Convert to PIL Image and resize
+        img = Image.fromarray(rgb)
+        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # Convert to PhotoImage
+        photo = ImageTk.PhotoImage(img)
+
+        # Update label
+        self._video_label.configure(image=photo)
+        self._video_label.image = photo  # Keep a reference
+
+    def _update_vision_text(self, text: str):
+        """Update the vision description text."""
+        self._vision_text_label.configure(text=f"👁️ {text}")
 
     def _close(self, on_close=None):
         if on_close:

@@ -12,7 +12,7 @@ import threading
 from brain.llm import LLM
 from brain.vision import Vision
 from memory.people import PeopleMemory
-from ui.display import Display, MSG_USER, MSG_BEAKY, MSG_BEAKY_STREAM, MSG_BEAKY_DONE, MSG_STATUS, MSG_VOLUME
+from ui.display import Display, MSG_USER, MSG_BEAKY, MSG_BEAKY_STREAM, MSG_BEAKY_DONE, MSG_STATUS, MSG_VOLUME, MSG_VIDEO, MSG_VISION_TEXT
 from voice.stt import STT
 from voice.tts import TTS
 
@@ -59,8 +59,18 @@ def worker_loop(display: Display, llm: LLM, vision: Vision, stt: STT, tts: TTS, 
             scene = None
             person = None
             try:
+                import pickle
                 frame = vision.capture_frame_raw()
+
+                # Send frame to display
+                frame_bytes = pickle.dumps(frame)
+                display.post(MSG_VIDEO, frame_bytes)
+
+                # Get scene description
                 scene = vision.describe_scene()
+                display.post(MSG_VISION_TEXT, scene)
+
+                # Recognize person
                 person = people.recognise(frame)
             except Exception as e:
                 log.warning("Vision/people failed: %s", e)
