@@ -84,18 +84,30 @@ class Display:
         self._video_label = tk.Label(video_panel, bg="#000000")
         self._video_label.pack(pady=5)
 
+        # FPS indicator
+        self._fps_label = tk.Label(
+            video_panel,
+            text="Vision: -- FPS",
+            bg="#0a0a0a",
+            fg="#888888",
+            font=(config.UI_FONT_FAMILY, 9),
+            pady=2,
+        )
+        self._fps_label.pack()
+
+        # Vision description (larger, more readable)
         self._vision_text_label = tk.Label(
             video_panel,
-            text="",
+            text="Waiting for vision...",
             bg="#0a0a0a",
-            fg="#60a5fa",
-            font=(config.UI_FONT_FAMILY, 9),
-            wraplength=300,
+            fg="#4ade80",
+            font=(config.UI_FONT_FAMILY, 12, "bold"),
+            wraplength=290,
             justify=tk.LEFT,
             padx=10,
-            pady=5,
+            pady=10,
         )
-        self._vision_text_label.pack()
+        self._vision_text_label.pack(fill=tk.X)
 
         # -- scrollable conversation area (left side) --
         container = tk.Frame(main_container, bg=config.UI_BG_COLOR)
@@ -413,8 +425,18 @@ class Display:
         self._video_label.image = photo  # Keep a reference
 
     def _update_vision_text(self, text: str):
-        """Update the vision description text."""
-        self._vision_text_label.configure(text=f"👁️ {text}")
+        """Update the vision description text and FPS."""
+        import time
+
+        # Calculate FPS
+        current_time = time.time()
+        if hasattr(self, '_last_vision_time'):
+            fps = 1.0 / (current_time - self._last_vision_time)
+            self._fps_label.configure(text=f"Vision: {fps:.1f} FPS")
+        self._last_vision_time = current_time
+
+        # Update description text
+        self._vision_text_label.configure(text=f"👁️  {text}")
 
     def _close(self, on_close=None):
         if on_close:
