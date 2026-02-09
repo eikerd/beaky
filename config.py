@@ -29,7 +29,7 @@ TTS_LENGTH_SCALE = 1.0  # speech speed (lower = faster)
 
 # --- UI ---
 UI_TITLE = "Beaky"
-UI_FULLSCREEN = True
+UI_FULLSCREEN = False
 UI_BG_COLOR = "#1a1a2e"
 UI_USER_COLOR = "#e94560"
 UI_BEAKY_COLOR = "#0f3460"
