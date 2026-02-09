@@ -17,8 +17,9 @@ WEBCAM_INDEX = 0
 STT_MODEL = "base.en"
 STT_DEVICE = "cpu"           # "cpu", "cuda", or "auto" (use cpu on Windows without CUDA)
 STT_COMPUTE_TYPE = "int8"    # "float16" for GPU, "int8" for CPU
-SILENCE_THRESHOLD = 0.005     # RMS threshold for voice activity (lowered for quiet mics)
+SILENCE_THRESHOLD = 0.01      # RMS threshold for voice activity
 SILENCE_DURATION = 1.5        # seconds of silence before processing
+MIN_AUDIO_DURATION = 0.5      # minimum seconds of audio to process (filters out noise)
 SAMPLE_RATE = 16000
 CHUNK_SIZE = 1024
 

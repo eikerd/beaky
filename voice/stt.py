@@ -96,6 +96,13 @@ class STT:
         if not frames:
             return None
 
+        # Check minimum duration to filter out noise/hallucinations
+        audio_duration = len(frames) * self.chunk_size / self.sample_rate
+        min_duration = getattr(config, 'MIN_AUDIO_DURATION', 0.5)
+        if audio_duration < min_duration:
+            log.info("Audio too short (%.2fs), ignoring", audio_duration)
+            return None
+
         # Write to a temporary WAV file for faster-whisper
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             with wave.open(tmp.name, "wb") as wf:
@@ -105,7 +112,16 @@ class STT:
                 wf.writeframes(b"".join(frames))
             tmp_path = tmp.name
 
-        segments, info = self.model.transcribe(tmp_path, beam_size=5)
+        segments, info = self.model.transcribe(
+            tmp_path,
+            beam_size=5,
+            vad_filter=True,  # Filter out non-speech segments
+            vad_parameters={
+                "threshold": 0.5,  # Higher = more strict (less hallucination)
+                "min_speech_duration_ms": 250,  # Minimum speech length
+                "min_silence_duration_ms": 500,  # Minimum silence to split
+            }
+        )
         text = " ".join(seg.text.strip() for seg in segments).strip()
 
         if text:
